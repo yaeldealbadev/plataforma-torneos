@@ -1,12 +1,10 @@
 import type { Request } from 'express';
 
-// Tipos compartidos del backend (placeholders).
-
-export type Role = 'user' | 'admin';
+export type Role = 'admin' | 'user';
 
 export interface User {
   id: number;
-  username: string;
+  name: string;
   email: string;
   password?: string; // hash; nunca se expone al cliente
   role: Role;
@@ -15,33 +13,37 @@ export interface User {
 
 export interface Game {
   id: number;
-  name: string;
-  slug: string;
+  title: string;
+  genre?: string;
+  platform?: string;
   description?: string;
-  cover_url?: string;
-}
-
-export type TournamentStatus = 'upcoming' | 'open' | 'ongoing' | 'finished';
-
-export interface Tournament {
-  id: number;
-  game_id: number;
-  name: string;
-  description?: string;
-  status: TournamentStatus;
-  max_players: number;
-  starts_at?: Date;
+  image_url?: string;
   created_at?: Date;
 }
 
-export type RegistrationStatus = 'pending' | 'confirmed' | 'rejected';
+export type TournamentStatus = 'open' | 'in_progress' | 'finished';
+
+export interface Tournament {
+  id: number;
+  name: string;
+  game_id: number;
+  description?: string;
+  start_date: Date;
+  max_participants: number;
+  prize?: string;
+  status: TournamentStatus;
+  created_by?: number;
+  created_at?: Date;
+}
+
+export type RegistrationStatus = 'registered' | 'cancelled';
 
 export interface Registration {
   id: number;
   user_id: number;
   tournament_id: number;
   status: RegistrationStatus;
-  created_at?: Date;
+  registered_at?: Date;
 }
 
 // Payload del JWT.

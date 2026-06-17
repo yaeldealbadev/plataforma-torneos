@@ -1,42 +1,45 @@
-// Tipos compartidos del dominio (placeholders).
-
-export type Role = 'user' | 'admin';
+export type Role = 'admin' | 'user';
 
 export interface User {
   id: number;
-  username: string;
+  name: string;
   email: string;
+  // password omitido: el frontend nunca recibe el hash
   role: Role;
-  createdAt?: string;
+  created_at?: string;
 }
 
 export interface Game {
   id: number;
-  name: string;
-  slug: string;
+  title: string;
+  genre?: string;
+  platform?: string;
   description?: string;
-  coverUrl?: string;
+  image_url?: string;
+  created_at?: string;
 }
 
-export type TournamentStatus = 'upcoming' | 'open' | 'ongoing' | 'finished';
+export type TournamentStatus = 'open' | 'in_progress' | 'finished';
 
 export interface Tournament {
   id: number;
-  gameId: number;
   name: string;
+  game_id: number;
   description?: string;
+  start_date: string;
+  max_participants: number;
+  prize?: string;
   status: TournamentStatus;
-  maxPlayers: number;
-  startsAt?: string;
-  createdAt?: string;
+  created_by?: number;
+  created_at?: string;
 }
 
-export type RegistrationStatus = 'pending' | 'confirmed' | 'rejected';
+export type RegistrationStatus = 'registered' | 'cancelled';
 
 export interface Registration {
   id: number;
-  userId: number;
-  tournamentId: number;
+  user_id: number;
+  tournament_id: number;
   status: RegistrationStatus;
-  createdAt?: string;
+  registered_at?: string;
 }
