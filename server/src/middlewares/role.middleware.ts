@@ -1,10 +1,15 @@
-import type { Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import type { AuthRequest, Role } from '../types/index.js';
 
-// Placeholder: restringe el acceso a uno o varios roles.
-export function roleMiddleware(..._roles: Role[]) {
-  return (_req: AuthRequest, _res: Response, next: NextFunction) => {
-    // TODO: comprobar que req.user.role esté incluido en _roles.
+export function roleMiddleware(...roles: Role[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const user = (req as AuthRequest).user;
+
+    if (!user || !roles.includes(user.role)) {
+      res.status(403).json({ message: 'Acceso denegado' });
+      return;
+    }
+
     next();
   };
 }

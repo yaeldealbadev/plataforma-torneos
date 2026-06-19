@@ -1,7 +1,13 @@
+import { validationResult } from 'express-validator';
 import type { Request, Response, NextFunction } from 'express';
 
-// Placeholder: recoge los resultados de express-validator y devuelve 400 si hay errores.
-export function validate(_req: Request, _res: Response, next: NextFunction) {
-  // TODO: const errors = validationResult(_req); if (!errors.isEmpty()) ...
+export function validate(req: Request, res: Response, next: NextFunction): void {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    res.status(422).json({ errors: errors.array() });
+    return;
+  }
+
   next();
 }
