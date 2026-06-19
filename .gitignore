@@ -34,3 +34,10 @@ Thumbs.db
 *.tsbuildinfo
 client/vite.config.js
 client/vite.config.d.ts
+
+# Secretos y temporales de deploy
+*.pem
+.env.local.backup
+server/.env.local.backup
+gen-token*.mjs
+load-schema.mjs
