@@ -8,6 +8,7 @@ import Register from '../pages/Register';
 import Games from '../pages/Games';
 import GameDetail from '../pages/GameDetail';
 import Tournaments from '../pages/Tournaments';
+import TournamentDetail from '../pages/TournamentDetail';
 import MyRegistrations from '../pages/MyRegistrations';
 import AdminPanel from '../pages/AdminPanel';
 import NotFound from '../pages/NotFound';
@@ -24,6 +25,7 @@ export default function AppRoutes() {
         <Route path="/games" element={<Games />} />
         <Route path="/games/:id" element={<GameDetail />} />
         <Route path="/tournaments" element={<Tournaments />} />
+        <Route path="/tournaments/:id" element={<TournamentDetail />} />
 
         {/* Requieren sesión */}
         <Route element={<ProtectedRoute />}>

@@ -43,3 +43,9 @@ export interface Registration {
   status: RegistrationStatus;
   registered_at?: string;
 }
+
+// Shape de lectura: Tournament + campos calculados que añade la API (JOIN + COUNT).
+export type TournamentWithStats = Tournament & {
+  game_title: string;
+  inscritos: number;
+};
