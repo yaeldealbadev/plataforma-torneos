@@ -1,4 +1,4 @@
-import { useState, useMemo, type ChangeEvent } from 'react';
+import { useState, useMemo, useReducer, type ChangeEvent } from 'react';
 import { isAxiosError } from 'axios';
 import { useFetch } from '../hooks/useFetch';
 import api from '../api/axios';
@@ -37,9 +37,68 @@ const EMPTY_FORM: TournamentForm = {
   status: 'open',
 };
 
-// Convierte la fecha ISO del API al formato que acepta <input type="datetime-local">
 function toDatetimeLocal(dateStr: string): string {
   return dateStr.replace(' ', 'T').slice(0, 16);
+}
+
+// ─── useReducer: State, Action, reducer ──────────────────────────────────────
+//
+// Agrupa el estado coordinado de la UI del panel (apertura de modales, modo
+// crear/editar, torneo seleccionado, feedback de éxito/error, loading de submit).
+// El form controlado queda como useState independiente porque cambia en cada
+// tecla y no necesita coordinación con el resto del estado.
+
+type ModalState =
+  | { type: 'closed' }
+  | { type: 'create' }
+  | { type: 'edit';   tournament: TournamentWithStats }
+  | { type: 'delete'; tournament: TournamentWithStats };
+
+type Feedback =
+  | { kind: 'idle' }
+  | { kind: 'success'; message: string }
+  | { kind: 'error';   message: string };
+
+type AdminState = {
+  modal:      ModalState;
+  feedback:   Feedback;
+  submitting: boolean;        // unifica saving + deleting (un solo modal abierto a la vez)
+};
+
+type AdminAction =
+  | { type: 'OPEN_CREATE' }
+  | { type: 'OPEN_EDIT';   tournament: TournamentWithStats }
+  | { type: 'OPEN_DELETE'; tournament: TournamentWithStats }
+  | { type: 'CLOSE_MODAL' }
+  | { type: 'SUBMIT_START' }
+  | { type: 'SUBMIT_SUCCESS'; message: string }
+  | { type: 'SUBMIT_ERROR';   message: string };
+
+const initialState: AdminState = {
+  modal:      { type: 'closed' },
+  feedback:   { kind: 'idle' },
+  submitting: false,
+};
+
+function adminReducer(state: AdminState, action: AdminAction): AdminState {
+  switch (action.type) {
+    case 'OPEN_CREATE':
+      return { modal: { type: 'create' }, feedback: { kind: 'idle' }, submitting: false };
+    case 'OPEN_EDIT':
+      return { modal: { type: 'edit', tournament: action.tournament }, feedback: { kind: 'idle' }, submitting: false };
+    case 'OPEN_DELETE':
+      return { modal: { type: 'delete', tournament: action.tournament }, feedback: { kind: 'idle' }, submitting: false };
+    case 'CLOSE_MODAL':
+      return { ...state, modal: { type: 'closed' } };
+    case 'SUBMIT_START':
+      return { ...state, submitting: true, feedback: { kind: 'idle' } };
+    case 'SUBMIT_SUCCESS':
+      return { modal: { type: 'closed' }, feedback: { kind: 'success', message: action.message }, submitting: false };
+    case 'SUBMIT_ERROR':
+      return { ...state, submitting: false, feedback: { kind: 'error', message: action.message } };
+    default:
+      return state;
+  }
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -52,26 +111,21 @@ export default function AdminPanel() {
     refetch,
   } = useFetch<TournamentWithStats[]>('/tournaments');
 
-  // OPCIÓN C — Selector resiliente con fallback en 3 rutas:
-  //   Ruta 1: GET /games devuelve datos → se usa directamente (cuando getGames esté implementado).
-  //   Ruta 2: /games falla o está vacío → se derivan juegos únicos de TournamentWithStats
-  //           (cada torneo trae game_id + game_title del JOIN de Fase 2).
-  //   Ruta 3: Ni /games ni torneos tienen datos → <input type="number"> manual con aviso.
-  // Sin cambios adicionales de código cuando el módulo de juegos esté disponible.
+  // OPCIÓN C — Selector resiliente con fallback en 3 rutas (sin cambios respecto a Fase 3E).
   const { data: gamesFromApi } = useFetch<Game[]>('/games');
 
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [editingTournament, setEditingTournament] = useState<TournamentWithStats | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [formError, setFormError] = useState('');
-  const [deleteError, setDeleteError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  // Estado coordinado de la UI gestionado por el reducer.
+  const [state, dispatch] = useReducer(adminReducer, initialState);
+
+  // Form controlado: se resetea/prelena explícitamente en openCreate/openEdit.
   const [form, setForm] = useState<TournamentForm>(EMPTY_FORM);
 
-  // Construye la lista de juegos para el selector aplicando las 3 rutas del fallback.
+  // Derivaciones del estado del reducer — sin estado adicional.
+  const isFormModalOpen   = state.modal.type === 'create' || state.modal.type === 'edit';
+  const isDeleteModalOpen = state.modal.type === 'delete';
+  const editingTournament = state.modal.type === 'edit' ? state.modal.tournament : null;
+
+  // Construye la lista de juegos para el selector (Opción C).
   const selectorGames = useMemo((): { id: number; title: string }[] => {
     if (gamesFromApi && gamesFromApi.length > 0) {
       return gamesFromApi.map(({ id, title }) => ({ id, title }));
@@ -82,18 +136,14 @@ export default function AdminPanel() {
     return Array.from(seen.entries()).map(([id, title]) => ({ id, title }));
   }, [gamesFromApi, tournaments]);
 
-  // ─── Handlers de apertura de modales ───────────────────────────────────────
+  // ─── Apertura de modales ────────────────────────────────────────────────────
 
   const openCreate = () => {
-    setEditingTournament(null);
     setForm(EMPTY_FORM);
-    setFormError('');
-    setSuccessMsg('');
-    setIsFormModalOpen(true);
+    dispatch({ type: 'OPEN_CREATE' });
   };
 
   const openEdit = (tournament: TournamentWithStats) => {
-    setEditingTournament(tournament);
     setForm({
       name: tournament.name,
       game_id: String(tournament.game_id),
@@ -103,31 +153,26 @@ export default function AdminPanel() {
       prize: tournament.prize ?? '',
       status: tournament.status,
     });
-    setFormError('');
-    setSuccessMsg('');
-    setIsFormModalOpen(true);
+    dispatch({ type: 'OPEN_EDIT', tournament });
   };
 
-  const openDelete = (id: number) => {
-    setDeletingId(id);
-    setDeleteError('');
-    setSuccessMsg('');
-    setIsDeleteModalOpen(true);
+  // openDelete recibe el torneo completo (antes recibía solo el id) para mostrar
+  // el nombre en la confirmación. Cambio mínimo en el JSX: openDelete(t) en vez de openDelete(t.id).
+  const openDelete = (tournament: TournamentWithStats) => {
+    dispatch({ type: 'OPEN_DELETE', tournament });
   };
 
-  // ─── Handler de cambio del formulario CONTROLADO ────────────────────────────
-  // El formulario es CONTROLADO: cada campo tiene value={form.x} y onChange que
-  // actualiza el estado. (Contraste con el buscador useRef de Tournaments.tsx.)
+  // ─── Form controlado ───────────────────────────────────────────────────────
 
   const handleFormChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value } as unknown as TournamentForm));
-    setFormError('');
+    // El error se limpia en SUBMIT_START, no en cada tecla (más semántico).
   };
 
-  // ─── Validación client-side ────────────────────────────────────────────────
+  // ─── Validación ────────────────────────────────────────────────────────────
 
   const validateForm = (): string | null => {
     if (!form.name.trim()) return 'El nombre es requerido.';
@@ -138,14 +183,15 @@ export default function AdminPanel() {
     return null;
   };
 
-  // ─── Mutaciones ────────────────────────────────────────────────────────────
+  // ─── Mutaciones (axios + dispatch; el reducer NO tiene efectos secundarios) ─
 
   const handleSave = async () => {
     const validErr = validateForm();
-    if (validErr) { setFormError(validErr); return; }
-
-    setSaving(true);
-    setFormError('');
+    if (validErr) {
+      dispatch({ type: 'SUBMIT_ERROR', message: validErr });
+      return;
+    }
+    dispatch({ type: 'SUBMIT_START' });
 
     const body = {
       name: form.name.trim(),
@@ -160,41 +206,34 @@ export default function AdminPanel() {
     try {
       if (editingTournament) {
         await api.put(`/tournaments/${editingTournament.id}`, body);
-        setSuccessMsg('Torneo actualizado correctamente.');
+        dispatch({ type: 'SUBMIT_SUCCESS', message: 'Torneo actualizado correctamente.' });
       } else {
         await api.post('/tournaments', body);
-        setSuccessMsg('Torneo creado correctamente.');
+        dispatch({ type: 'SUBMIT_SUCCESS', message: 'Torneo creado correctamente.' });
       }
-      setIsFormModalOpen(false);
       refetch();
     } catch (err) {
       const message = isAxiosError(err)
         ? (err.response?.data as { message?: string })?.message ?? 'Error al guardar.'
         : 'Error al guardar.';
-      setFormError(message);
-    } finally {
-      setSaving(false);
+      dispatch({ type: 'SUBMIT_ERROR', message });
     }
   };
 
   const handleDelete = async () => {
-    if (!deletingId) return;
-    setDeleting(true);
-    setDeleteError('');
+    if (state.modal.type !== 'delete') return;
+    const { tournament } = state.modal;   // TypeScript estrecha el tipo aquí
+    dispatch({ type: 'SUBMIT_START' });
 
     try {
-      await api.delete(`/tournaments/${deletingId}`);
-      setIsDeleteModalOpen(false);
-      setDeletingId(null);
+      await api.delete(`/tournaments/${tournament.id}`);
+      dispatch({ type: 'SUBMIT_SUCCESS', message: 'Torneo eliminado correctamente.' });
       refetch();
-      setSuccessMsg('Torneo eliminado correctamente.');
     } catch (err) {
       const message = isAxiosError(err)
         ? (err.response?.data as { message?: string })?.message ?? 'Error al eliminar.'
         : 'Error al eliminar.';
-      setDeleteError(message);
-    } finally {
-      setDeleting(false);
+      dispatch({ type: 'SUBMIT_ERROR', message });
     }
   };
 
@@ -204,7 +243,9 @@ export default function AdminPanel() {
     <div className="admin-panel">
       <h1>Panel Admin — Torneos</h1>
 
-      {successMsg && <p className="success-msg">{successMsg}</p>}
+      {state.feedback.kind === 'success' && (
+        <p className="success-msg">{state.feedback.message}</p>
+      )}
 
       <button onClick={openCreate}>+ Nuevo torneo</button>
 
@@ -236,7 +277,7 @@ export default function AdminPanel() {
                 <td>{t.inscritos} / {t.max_participants}</td>
                 <td>
                   <button onClick={() => openEdit(t)}>Editar</button>{' '}
-                  <button onClick={() => openDelete(t.id)}>Borrar</button>
+                  <button onClick={() => openDelete(t)}>Borrar</button>
                 </td>
               </tr>
             ))}
@@ -245,10 +286,12 @@ export default function AdminPanel() {
       )}
 
       {/* ── Modal crear / editar ─────────────────────────────────────────── */}
-      <Modal isOpen={isFormModalOpen} onClose={() => setIsFormModalOpen(false)}>
+      <Modal isOpen={isFormModalOpen} onClose={() => dispatch({ type: 'CLOSE_MODAL' })}>
         <h2>{editingTournament ? 'Editar torneo' : 'Nuevo torneo'}</h2>
 
-        {formError && <p className="error-msg">{formError}</p>}
+        {state.feedback.kind === 'error' && (
+          <p className="error-msg">{state.feedback.message}</p>
+        )}
 
         <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
           <div>
@@ -258,8 +301,6 @@ export default function AdminPanel() {
 
           <div>
             <label>Juego *</label>
-            {/* OPCIÓN C — Ruta 1/2: selector con juegos reales o derivados.
-                Ruta 3: input numérico cuando no hay ninguna fuente de juegos. */}
             {selectorGames.length > 0 ? (
               <select name="game_id" value={form.game_id} onChange={handleFormChange}>
                 <option value="">-- Selecciona un juego --</option>
@@ -328,26 +369,32 @@ export default function AdminPanel() {
           </div>
 
           <br />
-          <button type="submit" disabled={saving}>
-            {saving ? 'Guardando...' : 'Guardar'}
+          <button type="submit" disabled={state.submitting}>
+            {state.submitting ? 'Guardando...' : 'Guardar'}
           </button>
           {' '}
-          <button type="button" onClick={() => setIsFormModalOpen(false)}>
+          <button type="button" onClick={() => dispatch({ type: 'CLOSE_MODAL' })}>
             Cancelar
           </button>
         </form>
       </Modal>
 
       {/* ── Modal confirmación de borrado ────────────────────────────────── */}
-      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
+      <Modal isOpen={isDeleteModalOpen} onClose={() => dispatch({ type: 'CLOSE_MODAL' })}>
         <h2>Confirmar eliminación</h2>
-        <p>¿Eliminar este torneo? Las inscripciones asociadas se borrarán también (CASCADE).</p>
-        {deleteError && <p className="error-msg">{deleteError}</p>}
-        <button onClick={handleDelete} disabled={deleting}>
-          {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+        <p>
+          {state.modal.type === 'delete'
+            ? `¿Eliminar "${state.modal.tournament.name}"? Las inscripciones asociadas se borrarán también (CASCADE).`
+            : '¿Eliminar este torneo?'}
+        </p>
+        {state.feedback.kind === 'error' && (
+          <p className="error-msg">{state.feedback.message}</p>
+        )}
+        <button onClick={handleDelete} disabled={state.submitting}>
+          {state.submitting ? 'Eliminando...' : 'Sí, eliminar'}
         </button>
         {' '}
-        <button onClick={() => setIsDeleteModalOpen(false)}>Cancelar</button>
+        <button onClick={() => dispatch({ type: 'CLOSE_MODAL' })}>Cancelar</button>
       </Modal>
     </div>
   );
