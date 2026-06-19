@@ -12,10 +12,11 @@ export interface User {
 
 export interface Game {
   id: number;
-  name: string;
-  slug: string;
+  title: string;
+  genre?: string;
+  platform?: string;
   description?: string;
-  coverUrl?: string;
+  image_url?: string;
 }
 
 export type TournamentStatus = 'upcoming' | 'open' | 'ongoing' | 'finished';

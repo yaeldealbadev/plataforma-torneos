@@ -50,7 +50,7 @@ export default function Navbar() {
           </NavLink>
         )}
         {user?.role === 'admin' && (
-          <NavLink to="/admin" style={linkStyle}>
+          <NavLink to="/admin/games" style={linkStyle}>
             Panel admin
           </NavLink>
         )}
