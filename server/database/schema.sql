@@ -12,10 +12,11 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS games (
   id          INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
-  name        VARCHAR(100)  NOT NULL,
-  slug        VARCHAR(100)  NOT NULL UNIQUE,
+  title       VARCHAR(150)  NOT NULL,
+  genre       VARCHAR(100),
+  platform    VARCHAR(100),
   description TEXT,
-  cover_url   VARCHAR(500)
+  image_url   VARCHAR(500)
 );
 
 CREATE TABLE IF NOT EXISTS tournaments (
