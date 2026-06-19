@@ -29,3 +29,8 @@ pnpm-debug.log*
 !.vscode/extensions.json
 .idea/
 Thumbs.db
+
+# Archivos generados por TS/Vite
+*.tsbuildinfo
+client/vite.config.js
+client/vite.config.d.ts
