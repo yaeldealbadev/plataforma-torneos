@@ -49,3 +49,10 @@ export type TournamentWithStats = Tournament & {
   game_title: string;
   inscritos: number;
 };
+
+// Shape de lectura: Registration + datos del torneo que añade la API (JOIN tournaments).
+export type RegistrationWithTournament = Registration & {
+  tournament_name: string;
+  start_date: string;
+  tournament_status: TournamentStatus;
+};
