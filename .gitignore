@@ -41,3 +41,7 @@ client/vite.config.d.ts
 server/.env.local.backup
 gen-token*.mjs
 load-schema.mjs
+
+# Extras
+/package-lock.json
+load-local.mjs
