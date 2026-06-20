@@ -1414,3 +1414,138 @@ textarea::placeholder {
     align-items: flex-start;
   }
 }
+
+/* ─── NOT FOUND (404) ─────────────────────────────────────────────── */
+
+/* Glitch sutil que dispara cada ~5s */
+@keyframes glitch404 {
+  0%, 88%, 100% { transform: none; }
+  89% { transform: translate(-3px, 0) skew(-1.5deg); }
+  90% { transform: translate(3px, 0)  skew(1.5deg);  }
+  91% { transform: translate(-1px, 1px); }
+  92% { transform: translate(0); }
+}
+
+.not-found {
+  position: relative;
+  min-height: calc(100vh - var(--navbar-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: var(--bg-base);
+}
+
+/* Grid cyberpunk (igual que el hero) */
+.not-found::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.028) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+/* Viñeta radial que funde el grid */
+.not-found::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse 70% 65% at center, transparent 30%, var(--bg-base) 80%);
+  pointer-events: none;
+}
+
+/* Orbe de resplandor */
+.not-found__orb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(248,81,73,0.10) 0%,
+    rgba(138,43,226,0.06) 50%,
+    transparent 70%
+  );
+  filter: blur(28px);
+  z-index: 1;
+  animation: orbDrift 10s ease-in-out infinite;
+}
+
+.not-found__content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
+  max-width: 520px;
+  animation: heroFadeUp 0.65s ease both;
+}
+
+/* Logo pequeño con glow */
+.not-found__logo {
+  width: 90px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 14px rgba(0,212,255,0.45));
+  opacity: 0.9;
+}
+
+/* Código 404 — protagonista de la página */
+.not-found__code {
+  font-family: var(--font-heading);
+  font-size: clamp(5rem, 22vw, 10rem);
+  font-weight: 900;
+  line-height: 1;
+  margin: 0;
+  letter-spacing: 0.1em;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: glitch404 5s steps(1) infinite;
+  will-change: transform;
+}
+
+/* Línea decorativa */
+.not-found__divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--danger), transparent);
+  border: none;
+  margin: 0.25rem 0;
+}
+
+/* Título */
+.not-found__title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.1rem, 3.5vw, 1.6rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* Subtítulo */
+.not-found__subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 0;
+  max-width: 340px;
+  line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .not-found__logo { width: 70px; }
+  .not-found__orb  { width: 260px; height: 260px; }
+}
