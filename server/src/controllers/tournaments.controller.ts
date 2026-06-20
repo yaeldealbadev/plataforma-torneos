@@ -35,7 +35,7 @@ export async function getTournaments(req: Request, res: Response, next: NextFunc
       `${TOURNAMENT_BASE_SQL} ${where} GROUP BY t.id ORDER BY t.start_date`,
       params
     );
-    res.json(rows);
+    res.json({ data: rows });
   } catch (err) {
     next(err);
   }
@@ -48,7 +48,7 @@ export async function getTournamentById(req: Request, res: Response, next: NextF
       res.status(404).json({ message: 'Torneo no encontrado' });
       return;
     }
-    res.json(tournament);
+    res.json({ data: tournament });
   } catch (err) {
     next(err);
   }
@@ -73,7 +73,7 @@ export async function createTournament(req: AuthRequest, res: Response, next: Ne
       [name, game_id, description ?? null, start_date, max_participants ?? 16, prize ?? null, status ?? 'open', userId]
     );
     const created = await fetchTournamentRow(result.insertId);
-    res.status(201).json(created);
+    res.status(201).json({ data: created });
   } catch (err) {
     next(err);
   }
@@ -95,7 +95,7 @@ export async function updateTournament(req: Request, res: Response, next: NextFu
       [name, game_id, description ?? null, start_date, max_participants, prize ?? null, status, id]
     );
     const updated = await fetchTournamentRow(id);
-    res.json(updated);
+    res.json({ data: updated });
   } catch (err) {
     next(err);
   }

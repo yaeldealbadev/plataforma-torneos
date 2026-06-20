@@ -11,7 +11,7 @@ USE plataforma_torneos;
 
 CREATE TABLE users (
   id          INT AUTO_INCREMENT PRIMARY KEY,
-  name        VARCHAR(100)  NOT NULL,
+  username    VARCHAR(100)  NOT NULL,
   email       VARCHAR(150)  NOT NULL UNIQUE,
   password    VARCHAR(255)  NOT NULL,
   role        ENUM('admin','user') NOT NULL DEFAULT 'user',
@@ -66,7 +66,7 @@ CREATE INDEX idx_reg_tournament     ON registrations(tournament_id);
 -- DATOS SEMILLA
 -- Contraseñas (texto plano, solo para anotar en el PDF):
 --   admin@torneos.com -> Admin123!  ·  jugador1 -> Jugador123!  ·  jugador2 -> Jugador456!
-INSERT INTO users (name, email, password, role) VALUES
+INSERT INTO users (username, email, password, role) VALUES
 ('Administrador', 'admin@torneos.com',    '$2b$10$giRL8ku2JJzxL5E.SoKgK.0cNnTKYwHUAsvBD95Tiolpbnkjys3Eq', 'admin'),
 ('Jugador Uno',   'jugador1@torneos.com', '$2b$10$gK2UqYfLmIuoY9j3SyWS7.b5Dc1.tpAcQrZZeeVkmUHASLgEC1sKK', 'user'),
 ('Jugador Dos',   'jugador2@torneos.com', '$2b$10$YBWFuLCDvD6xMviuRf6tZuqLaL6l0HjVmf755vYuydnJ5VVfCCTDq', 'user');

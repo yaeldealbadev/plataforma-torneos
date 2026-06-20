@@ -32,7 +32,7 @@ export async function getMyRegistrations(req: AuthRequest, res: Response, next: 
        ORDER BY r.registered_at DESC`,
       [userId]
     );
-    res.json(rows);
+    res.json({ data: rows });
   } catch (err) {
     next(err);
   }
@@ -104,7 +104,7 @@ export async function createRegistration(req: AuthRequest, res: Response, next: 
       'SELECT * FROM registrations WHERE id = ?',
       [registrationId]
     );
-    res.status(201).json(rows[0]);
+    res.status(201).json({ data: rows[0] });
   } catch (err) {
     next(err);
   }
@@ -133,7 +133,7 @@ export async function updateRegistrationStatus(req: Request, res: Response, next
       'SELECT * FROM registrations WHERE id = ?',
       [id]
     );
-    res.json(rows[0]);
+    res.json({ data: rows[0] });
   } catch (err) {
     next(err);
   }

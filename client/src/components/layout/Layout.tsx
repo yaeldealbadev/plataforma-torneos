@@ -1,11 +1,12 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
+import Toast from '../ui/Toast';
 
-// Placeholder del layout principal: navbar + contenido de la ruta activa.
 export default function Layout() {
   return (
     <>
       <Navbar />
+      <Toast />
       <main>
         <Outlet />
       </main>
