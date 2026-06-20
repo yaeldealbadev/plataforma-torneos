@@ -2,7 +2,7 @@ export type Role = 'admin' | 'user';
 
 export interface User {
   id: number;
-  name: string;
+  username: string;
   email: string;
   // password omitido: el frontend nunca recibe el hash
   role: Role;
