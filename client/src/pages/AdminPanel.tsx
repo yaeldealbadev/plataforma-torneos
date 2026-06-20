@@ -15,7 +15,13 @@ const STATUS_LABELS: Record<TournamentStatus, string> = {
   finished: 'Finalizado',
 };
 
-// ─── Tipos del formulario (todos string para simplificar el binding) ──────────
+const STATUS_BADGE: Record<TournamentStatus, string> = {
+  open: 'badge-open',
+  in_progress: 'badge-progress',
+  finished: 'badge-finished',
+};
+
+// ─── Tipos del formulario ─────────────────────────────────────────────────────
 
 interface TournamentForm {
   name: string;
@@ -42,11 +48,6 @@ function toDatetimeLocal(dateStr: string): string {
 }
 
 // ─── useReducer: State, Action, reducer ──────────────────────────────────────
-//
-// Agrupa el estado coordinado de la UI del panel (apertura de modales, modo
-// crear/editar, torneo seleccionado, feedback de éxito/error, loading de submit).
-// El form controlado queda como useState independiente porque cambia en cada
-// tecla y no necesita coordinación con el resto del estado.
 
 type ModalState =
   | { type: 'closed' }
@@ -62,7 +63,7 @@ type Feedback =
 type AdminState = {
   modal:      ModalState;
   feedback:   Feedback;
-  submitting: boolean;        // unifica saving + deleting (un solo modal abierto a la vez)
+  submitting: boolean;
 };
 
 type AdminAction =
@@ -111,21 +112,16 @@ export default function AdminPanel() {
     refetch,
   } = useFetch<TournamentWithStats[]>('/tournaments');
 
-  // OPCIÓN C — Selector resiliente con fallback en 3 rutas (sin cambios respecto a Fase 3E).
   const { data: gamesFromApi } = useFetch<Game[]>('/games');
 
-  // Estado coordinado de la UI gestionado por el reducer.
   const [state, dispatch] = useReducer(adminReducer, initialState);
-
-  // Form controlado: se resetea/prelena explícitamente en openCreate/openEdit.
   const [form, setForm] = useState<TournamentForm>(EMPTY_FORM);
 
-  // Derivaciones del estado del reducer — sin estado adicional.
   const isFormModalOpen   = state.modal.type === 'create' || state.modal.type === 'edit';
   const isDeleteModalOpen = state.modal.type === 'delete';
   const editingTournament = state.modal.type === 'edit' ? state.modal.tournament : null;
 
-  // Construye la lista de juegos para el selector (Opción C).
+  // OPCIÓN C — Selector resiliente con fallback
   const selectorGames = useMemo((): { id: number; title: string }[] => {
     if (gamesFromApi && gamesFromApi.length > 0) {
       return gamesFromApi.map(({ id, title }) => ({ id, title }));
@@ -135,8 +131,6 @@ export default function AdminPanel() {
     tournaments.forEach((t) => seen.set(t.game_id, t.game_title));
     return Array.from(seen.entries()).map(([id, title]) => ({ id, title }));
   }, [gamesFromApi, tournaments]);
-
-  // ─── Apertura de modales ────────────────────────────────────────────────────
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
@@ -156,23 +150,16 @@ export default function AdminPanel() {
     dispatch({ type: 'OPEN_EDIT', tournament });
   };
 
-  // openDelete recibe el torneo completo (antes recibía solo el id) para mostrar
-  // el nombre en la confirmación. Cambio mínimo en el JSX: openDelete(t) en vez de openDelete(t.id).
   const openDelete = (tournament: TournamentWithStats) => {
     dispatch({ type: 'OPEN_DELETE', tournament });
   };
-
-  // ─── Form controlado ───────────────────────────────────────────────────────
 
   const handleFormChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value } as unknown as TournamentForm));
-    // El error se limpia en SUBMIT_START, no en cada tecla (más semántico).
   };
-
-  // ─── Validación ────────────────────────────────────────────────────────────
 
   const validateForm = (): string | null => {
     if (!form.name.trim()) return 'El nombre es requerido.';
@@ -183,14 +170,9 @@ export default function AdminPanel() {
     return null;
   };
 
-  // ─── Mutaciones (axios + dispatch; el reducer NO tiene efectos secundarios) ─
-
   const handleSave = async () => {
     const validErr = validateForm();
-    if (validErr) {
-      dispatch({ type: 'SUBMIT_ERROR', message: validErr });
-      return;
-    }
+    if (validErr) { dispatch({ type: 'SUBMIT_ERROR', message: validErr }); return; }
     dispatch({ type: 'SUBMIT_START' });
 
     const body = {
@@ -222,7 +204,7 @@ export default function AdminPanel() {
 
   const handleDelete = async () => {
     if (state.modal.type !== 'delete') return;
-    const { tournament } = state.modal;   // TypeScript estrecha el tipo aquí
+    const { tournament } = state.modal;
     dispatch({ type: 'SUBMIT_START' });
 
     try {
@@ -240,49 +222,62 @@ export default function AdminPanel() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="admin-panel">
-      <h1>Panel Admin — Torneos</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <h1 className="page-title">Panel Admin — Torneos</h1>
+        <button onClick={openCreate} className="btn btn-primary">
+          + Nuevo torneo
+        </button>
+      </div>
 
       {state.feedback.kind === 'success' && (
-        <p className="success-msg">{state.feedback.message}</p>
+        <p className="state-success">{state.feedback.message}</p>
       )}
 
-      <button onClick={openCreate}>+ Nuevo torneo</button>
-
-      {loadingTournaments && <p>Cargando torneos...</p>}
-      {tournamentsError && <p>Error: {tournamentsError}</p>}
+      {loadingTournaments && <p className="state-info">Cargando torneos...</p>}
+      {tournamentsError && <p className="state-error">Error: {tournamentsError}</p>}
       {!loadingTournaments && !tournamentsError && tournaments?.length === 0 && (
-        <p>No hay torneos. Crea el primero.</p>
+        <p className="state-info">No hay torneos. Crea el primero.</p>
       )}
 
       {tournaments && tournaments.length > 0 && (
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Juego</th>
-              <th>Estado</th>
-              <th>Inicio</th>
-              <th>Inscritos</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tournaments.map((t) => (
-              <tr key={t.id}>
-                <td>{t.name}</td>
-                <td>{t.game_title}</td>
-                <td>{STATUS_LABELS[t.status]}</td>
-                <td>{new Date(t.start_date).toLocaleDateString('es-MX')}</td>
-                <td>{t.inscritos} / {t.max_participants}</td>
-                <td>
-                  <button onClick={() => openEdit(t)}>Editar</button>{' '}
-                  <button onClick={() => openDelete(t)}>Borrar</button>
-                </td>
+        <div className="data-table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Juego</th>
+                <th>Estado</th>
+                <th>Inicio</th>
+                <th>Inscritos</th>
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {tournaments.map((t) => (
+                <tr key={t.id}>
+                  <td>{t.name}</td>
+                  <td>{t.game_title}</td>
+                  <td>
+                    <span className={`badge ${STATUS_BADGE[t.status]}`}>
+                      {STATUS_LABELS[t.status]}
+                    </span>
+                  </td>
+                  <td>{new Date(t.start_date).toLocaleDateString('es-MX')}</td>
+                  <td>{t.inscritos} / {t.max_participants}</td>
+                  <td>
+                    <button onClick={() => openEdit(t)} className="btn btn-edit btn-sm">
+                      Editar
+                    </button>{' '}
+                    <button onClick={() => openDelete(t)} className="btn btn-danger btn-sm">
+                      Borrar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* ── Modal crear / editar ─────────────────────────────────────────── */}
@@ -290,17 +285,17 @@ export default function AdminPanel() {
         <h2>{editingTournament ? 'Editar torneo' : 'Nuevo torneo'}</h2>
 
         {state.feedback.kind === 'error' && (
-          <p className="error-msg">{state.feedback.message}</p>
+          <p className="state-error">{state.feedback.message}</p>
         )}
 
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-          <div>
-            <label>Nombre *</label>
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="form">
+          <div className="form-field">
+            <label className="form-label">Nombre *</label>
             <input name="name" value={form.name} onChange={handleFormChange} />
           </div>
 
-          <div>
-            <label>Juego *</label>
+          <div className="form-field">
+            <label className="form-label">Juego *</label>
             {selectorGames.length > 0 ? (
               <select name="game_id" value={form.game_id} onChange={handleFormChange}>
                 <option value="">-- Selecciona un juego --</option>
@@ -318,13 +313,15 @@ export default function AdminPanel() {
                   placeholder="ID del juego"
                   min={1}
                 />
-                <small> Selector cargará cuando el módulo de juegos esté disponible.</small>
+                <small className="form-hint">
+                  Selector cargará cuando el módulo de juegos esté disponible.
+                </small>
               </>
             )}
           </div>
 
-          <div>
-            <label>Descripción</label>
+          <div className="form-field">
+            <label className="form-label">Descripción</label>
             <textarea
               name="description"
               value={form.description}
@@ -333,68 +330,80 @@ export default function AdminPanel() {
             />
           </div>
 
-          <div>
-            <label>Fecha de inicio *</label>
-            <input
-              type="datetime-local"
-              name="start_date"
-              value={form.start_date}
-              onChange={handleFormChange}
-            />
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label">Fecha de inicio *</label>
+              <input
+                type="datetime-local"
+                name="start_date"
+                value={form.start_date}
+                onChange={handleFormChange}
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Máx. participantes</label>
+              <input
+                type="number"
+                name="max_participants"
+                value={form.max_participants}
+                onChange={handleFormChange}
+                min={1}
+              />
+            </div>
           </div>
 
-          <div>
-            <label>Máx. participantes</label>
-            <input
-              type="number"
-              name="max_participants"
-              value={form.max_participants}
-              onChange={handleFormChange}
-              min={1}
-            />
+          <div className="form-row">
+            <div className="form-field">
+              <label className="form-label">Premio</label>
+              <input name="prize" value={form.prize} onChange={handleFormChange} />
+            </div>
+            <div className="form-field">
+              <label className="form-label">Estado</label>
+              <select name="status" value={form.status} onChange={handleFormChange}>
+                {TOURNAMENT_STATUSES.map((s) => (
+                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label>Premio</label>
-            <input name="prize" value={form.prize} onChange={handleFormChange} />
+          <div className="form-actions">
+            <button type="submit" disabled={state.submitting} className="btn btn-primary">
+              {state.submitting ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button
+              type="button"
+              onClick={() => dispatch({ type: 'CLOSE_MODAL' })}
+              className="btn btn-secondary"
+            >
+              Cancelar
+            </button>
           </div>
-
-          <div>
-            <label>Estado</label>
-            <select name="status" value={form.status} onChange={handleFormChange}>
-              {TOURNAMENT_STATUSES.map((s) => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-              ))}
-            </select>
-          </div>
-
-          <br />
-          <button type="submit" disabled={state.submitting}>
-            {state.submitting ? 'Guardando...' : 'Guardar'}
-          </button>
-          {' '}
-          <button type="button" onClick={() => dispatch({ type: 'CLOSE_MODAL' })}>
-            Cancelar
-          </button>
         </form>
       </Modal>
 
       {/* ── Modal confirmación de borrado ────────────────────────────────── */}
       <Modal isOpen={isDeleteModalOpen} onClose={() => dispatch({ type: 'CLOSE_MODAL' })}>
         <h2>Confirmar eliminación</h2>
-        <p>
+        <p className="modal-text">
           {state.modal.type === 'delete'
             ? `¿Eliminar "${state.modal.tournament.name}"? Las inscripciones asociadas se borrarán también (CASCADE).`
             : '¿Eliminar este torneo?'}
         </p>
         {state.feedback.kind === 'error' && (
-          <p className="error-msg">{state.feedback.message}</p>
+          <p className="state-error">{state.feedback.message}</p>
         )}
-        <button onClick={handleDelete} disabled={state.submitting}>
-          {state.submitting ? 'Eliminando...' : 'Sí, eliminar'}
-        </button>
-        {' '}
-        <button onClick={() => dispatch({ type: 'CLOSE_MODAL' })}>Cancelar</button>
+        <div className="modal-actions">
+          <button
+            onClick={() => dispatch({ type: 'CLOSE_MODAL' })}
+            className="btn btn-secondary"
+          >
+            Cancelar
+          </button>
+          <button onClick={handleDelete} disabled={state.submitting} className="btn btn-danger">
+            {state.submitting ? 'Eliminando...' : 'Sí, eliminar'}
+          </button>
+        </div>
       </Modal>
     </div>
   );

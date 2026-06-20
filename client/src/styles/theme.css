@@ -78,6 +78,12 @@
   --shadow-md: 0 4px 16px rgba(0,0,0,0.55);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.65);
 
+  /* Acento morado (complementario para gradientes del hero) */
+  --accent-purple: #8a2be2;
+
+  /* Altura del navbar (para calcular el hero) */
+  --navbar-height: 70px;
+
   /* Transiciones */
   --transition:      0.2s ease;
   --transition-slow: 0.35s ease;
@@ -92,6 +98,34 @@
 @keyframes glowPulse {
   0%, 100% { box-shadow: 0 0 8px  rgba(0,212,255,0.25); }
   50%       { box-shadow: 0 0 22px rgba(0,212,255,0.55); }
+}
+
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-10px); }
+}
+
+@keyframes logoPulse {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 20px rgba(0,212,255,0.5))
+      drop-shadow(0 0 40px rgba(0,212,255,0.15));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 36px rgba(0,212,255,0.85))
+      drop-shadow(0 0 70px rgba(138,43,226,0.45));
+  }
+}
+
+@keyframes orbDrift {
+  0%, 100% { transform: translate(-50%, -50%) scale(1);   opacity: 0.55; }
+  50%       { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8;  }
 }
 
 /* ─── RESET LIGERO ────────────────────────────────────────────────── */
@@ -341,14 +375,17 @@ textarea::placeholder {
 
 /* ─── LAYOUT / CONTENEDORES ───────────────────────────────────────── */
 .page-container {
-  max-width: 1000px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2rem 2rem;
   animation: fadeIn 0.25s ease;
 }
 
-.page-container--wide   { max-width: 1200px; }
+/* Listados, catálogos: máximo aprovechamiento del ancho */
+.page-container--wide   { max-width: 1440px; }
+/* Auth, detalle: centrado y acotado */
 .page-container--narrow { max-width: 640px;  }
+.page-container--detail { max-width: 900px;  }
 
 .page-header {
   display: flex;
@@ -367,11 +404,11 @@ textarea::placeholder {
   letter-spacing: 0.04em;
 }
 
-/* Grid de tarjetas */
+/* Grid de tarjetas — 3-4 cols en desktop, 2 en tablet, 1 en móvil */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 2rem;
 }
 
 /* ─── TABLA DE DATOS (admin) ──────────────────────────────────────── */
@@ -518,8 +555,40 @@ textarea::placeholder {
   margin-top: 0.25rem;
 }
 
-/* ─── MODAL (contenido interno) ───────────────────────────────────── */
-/* El overlay/contenedor lo gestiona Modal.tsx con sus propios estilos */
+/* ─── MODAL ───────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--glow-accent-strong), var(--shadow-lg);
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-title {
+  margin: 0 0 0.875rem;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  letter-spacing: 0.03em;
+}
+
+/* Contenido interno de Modal */
 .modal-body {
   display: flex;
   flex-direction: column;
@@ -552,21 +621,26 @@ textarea::placeholder {
   z-index: 100;
 }
 
-/* Logo — siempre cyan, fuente Orbitron */
+/* Logo — contenedor del link; la imagen se dimensiona con .navbar__logo-img */
 .navbar__logo {
-  font-family: var(--font-heading);
-  font-size: 1.15rem;
-  font-weight: 900;
-  color: var(--accent);
-  text-decoration: none;
+  display: flex;
+  align-items: center;
   margin-right: auto;
-  letter-spacing: 0.08em;
-  transition: text-shadow var(--transition), color var(--transition);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: filter var(--transition), opacity var(--transition);
 }
-.navbar__logo:hover,
+.navbar__logo:hover {
+  filter: drop-shadow(0 0 8px rgba(0,212,255,0.55));
+}
 .navbar__logo.active {
-  color: var(--accent-hover);
-  text-shadow: 0 0 20px rgba(0,212,255,0.55);
+  filter: drop-shadow(0 0 6px rgba(0,212,255,0.35));
+}
+
+.navbar__logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
 }
 
 /* Links de navegación */
@@ -618,3 +692,725 @@ textarea::placeholder {
 
 /* El botón de Registrarse es un NavLink con clase btn — evitar el ::after de link */
 .navbar__auth a.active::after { display: none; }
+
+/* ─── GAME CARD ───────────────────────────────────────────────────── */
+.game-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;          /* altura consistente en cada fila del grid */
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+
+.game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-accent);
+  box-shadow: var(--glow-accent);
+}
+
+.game-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.game-card__thumb {
+  width: 100%;
+  height: 195px;
+  background-color: var(--bg-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.game-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+
+.game-card:hover .game-card__img {
+  transform: scale(1.04);
+}
+
+.game-card__placeholder {
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+}
+
+.game-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 1.25rem;
+  flex: 1;
+}
+
+.game-card__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+.game-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.game-card__tag {
+  font-size: var(--text-xs);
+  padding: 0.125rem 0.55rem;
+  border-radius: var(--radius-full);
+  background-color: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--border-accent);
+}
+
+.game-card__desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+/* ─── GAMES PAGE ──────────────────────────────────────────────────── */
+.games-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  animation: fadeIn 0.25s ease;
+}
+
+.games-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.games-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.games-filter__label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Select dentro del filtro no ocupa 100% de ancho */
+.games-filter select {
+  width: auto;
+  padding: 0.4rem 0.6rem;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+}
+
+/* ─── TOAST ───────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  min-width: 280px;
+  max-width: 520px;
+  font-size: var(--text-sm);
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.toast--success {
+  background-color: rgba(10,20,12,0.92);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+  box-shadow: var(--glow-success), var(--shadow-md);
+}
+
+.toast--error {
+  background-color: rgba(20,8,8,0.92);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  box-shadow: var(--glow-danger), var(--shadow-md);
+}
+
+.toast__message { flex: 1; }
+
+.toast__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-size: var(--text-base);
+  line-height: 1;
+  padding: 0 0.25rem;
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: opacity var(--transition);
+}
+.toast__close:hover { opacity: 1; }
+
+/* ─── HERO (Home) ─────────────────────────────────────────────────── */
+
+/* Contenedor principal — pantalla completa menos la navbar */
+.hero {
+  position: relative;
+  min-height: calc(100vh - var(--navbar-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: var(--bg-base);
+}
+
+/* Grid cyberpunk sutil como fondo */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.028) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+/* Viñeta radial que funde el grid hacia los bordes */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse 70% 65% at center, transparent 30%, var(--bg-base) 80%);
+  pointer-events: none;
+}
+
+/* Orbe de resplandor detrás del logo */
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero__glow-orb {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(0,212,255,0.14) 0%,
+    rgba(138,43,226,0.07) 45%,
+    transparent 70%
+  );
+  filter: blur(24px);
+  animation: orbDrift 9s ease-in-out infinite;
+}
+
+/* Contenido principal del hero */
+.hero__content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
+  max-width: 600px;
+  animation: heroFadeUp 0.7s ease both;
+}
+
+/* Logo */
+.hero__logo-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero__logo {
+  width: 220px;
+  max-width: 60vw;
+  height: auto;
+  display: block;
+  animation:
+    logoFloat 5.5s ease-in-out infinite,
+    logoPulse 4.5s ease-in-out infinite;
+  will-change: transform, filter;
+}
+
+/* Título — gradiente cyan → púrpura con clip.
+   Elimina esta clase si el logo ya incluye el texto "TORNEOS". */
+.hero__title {
+  font-family: var(--font-heading);
+  font-size: clamp(2.2rem, 9vw, 4.5rem);
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+/* Tagline */
+.hero__tagline {
+  font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Separador decorativo entre tagline y botones */
+.hero__divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  border: none;
+  margin: 0.25rem 0;
+}
+
+/* Botones CTA */
+.hero__ctas {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+/* Botones del hero ligeramente más grandes que los .btn estándar */
+.hero__cta-btn {
+  padding: 0.75rem 2.25rem;
+  font-size: var(--text-base);
+  letter-spacing: 0.03em;
+}
+
+/* Responsive: móvil */
+@media (max-width: 480px) {
+  .hero__logo {
+    width: 160px;
+  }
+
+  .hero__glow-orb {
+    width: 320px;
+    height: 320px;
+  }
+
+  .hero__ctas {
+    flex-direction: column;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .hero__cta-btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* ─── ADMIN PAGE (AdminGames / AdminPanel) ────────────────────────── */
+.admin-page {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 2rem 2rem;
+  animation: fadeIn 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.form-hint {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+  margin-top: 0.25rem;
+}
+
+.data-table__empty {
+  text-align: center;
+  color: var(--text-dim);
+}
+
+/* ─── TOURNAMENT CARD ─────────────────────────────────────────────── */
+.tournament-card__link {
+  text-decoration: none;
+  display: block;
+  height: 100%;          /* igual altura en todas las celdas del grid */
+}
+
+.tournament-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
+  animation: fadeIn 0.3s ease both;
+  height: 100%;
+}
+
+.tournament-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-accent);
+  box-shadow: var(--glow-accent);
+}
+
+.tournament-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tournament-card__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+.tournament-card__game {
+  font-size: var(--text-base);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.tournament-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.tournament-card__meta-item {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.tournament-card__meta-label {
+  color: var(--text-dim);
+  min-width: 4.5rem;
+  font-weight: 600;
+}
+
+/* ─── REGISTRATION LIST / CARDS ───────────────────────────────────── */
+.registration-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.registration-card {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.25s ease both;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.registration-card:hover { border-color: var(--border-accent); }
+
+.registration-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.registration-card__name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.registration-card__meta {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.registration-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ─── AUTH (Login / Register) ─────────────────────────────────────── */
+.auth-page {
+  min-height: calc(100vh - var(--navbar-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  padding: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--glow-accent), var(--shadow-lg);
+  animation: heroFadeUp 0.4s ease both;
+}
+
+.auth-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+/* ─── TOURNAMENT DETAIL ────────────────────────────────────────────── */
+.tournament-detail__back {
+  display: inline-block;
+  font-size: var(--text-sm);
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+  transition: color var(--transition);
+}
+.tournament-detail__back:hover { color: var(--accent-hover); }
+
+.tournament-detail__title {
+  font-size: clamp(1.5rem, 4vw, var(--text-3xl));
+  font-weight: 700;
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  margin: 0 0 1.5rem;
+}
+
+.tournament-detail__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.tournament-detail__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tournament-detail__label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.tournament-detail__value {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.tournament-detail__actions {
+  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tournament-detail__no-session {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+/* ─── BADGE GLOWS ─────────────────────────────────────────────────── */
+.badge-open       { box-shadow: 0 0 8px rgba(63,185,80,0.28);   }
+.badge-progress   { box-shadow: 0 0 8px rgba(227,179,65,0.28);  }
+.badge-registered { box-shadow: 0 0 8px rgba(0,212,255,0.20);   }
+.badge-cancelled  { box-shadow: 0 0 6px rgba(248,81,73,0.20);   }
+
+/* ─── MICRO-ANIMACIONES ───────────────────────────────────────────── */
+.btn:not(:disabled):hover  { transform: translateY(-1px); }
+.btn:not(:disabled):active { transform: translateY(0) scale(0.97); }
+
+/* card elevation override (ya tenía glow, añadimos lift) */
+.card:hover { transform: translateY(-3px); }
+
+/* ─── STAGGER ANIMATIONS (.card-grid y .registration-list) ───────── */
+.card-grid > *:nth-child(1),
+.registration-list > *:nth-child(1)  { animation-delay: 0.00s; }
+.card-grid > *:nth-child(2),
+.registration-list > *:nth-child(2)  { animation-delay: 0.06s; }
+.card-grid > *:nth-child(3),
+.registration-list > *:nth-child(3)  { animation-delay: 0.12s; }
+.card-grid > *:nth-child(4),
+.registration-list > *:nth-child(4)  { animation-delay: 0.18s; }
+.card-grid > *:nth-child(5),
+.registration-list > *:nth-child(5)  { animation-delay: 0.24s; }
+.card-grid > *:nth-child(6),
+.registration-list > *:nth-child(6)  { animation-delay: 0.30s; }
+.card-grid > *:nth-child(7),
+.registration-list > *:nth-child(7)  { animation-delay: 0.36s; }
+.card-grid > *:nth-child(8),
+.registration-list > *:nth-child(8)  { animation-delay: 0.42s; }
+.card-grid > *:nth-child(9),
+.registration-list > *:nth-child(9)  { animation-delay: 0.48s; }
+.card-grid > *:nth-child(10),
+.registration-list > *:nth-child(10) { animation-delay: 0.54s; }
+.card-grid > *:nth-child(11),
+.registration-list > *:nth-child(11) { animation-delay: 0.60s; }
+.card-grid > *:nth-child(12),
+.registration-list > *:nth-child(12) { animation-delay: 0.66s; }
+
+/* ─── RESPONSIVE — tablet y móvil ────────────────────────────────── */
+@media (max-width: 1024px) {
+  .page-container,
+  .admin-page {
+    padding: 1.75rem 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container,
+  .admin-page {
+    padding: 1.5rem 1rem;
+  }
+
+  /* Tablas: scroll horizontal en pantallas chicas */
+  .data-table-wrap {
+    border-radius: var(--radius-sm);
+  }
+
+  /* Admin: tabla con texto más pequeño */
+  .data-table th,
+  .data-table td {
+    padding: 0.6rem 0.75rem;
+    font-size: var(--text-xs);
+  }
+
+  /* Formularios auth: ancho completo con padding */
+  .auth-card {
+    padding: 1.75rem 1.25rem;
+  }
+
+  /* Tablet: 2 columnas de cards más grandes */
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .games-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* Registration cards: apila verticalmente */
+  .registration-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .registration-card__actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container,
+  .admin-page {
+    padding: 1.25rem 0.875rem;
+  }
+
+  /* 1 columna en móvil para tournament cards */
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Móvil: game cards en 1 columna (igual que tournament cards) */
+  .games-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* page-header: título y botón apilados */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

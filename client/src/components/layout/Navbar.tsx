@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
+import logo from '../../assets/logo.png';
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -16,7 +17,7 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <NavLink to="/" end className="navbar__logo">
-        Torneos
+        <img src={logo} alt="Plataforma Torneos" className="navbar__logo-img" />
       </NavLink>
 
       <div className="navbar__links">

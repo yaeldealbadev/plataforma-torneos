@@ -1,5 +1,4 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
-import type React from 'react';
 import axios from 'axios';
 import api from '../api/axios';
 import { useFetch } from '../hooks/useFetch';
@@ -52,7 +51,6 @@ export default function AdminGames() {
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Juego pendiente de borrar (controla el modal de confirmación).
   const [toDelete, setToDelete] = useState<Game | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -89,7 +87,6 @@ export default function AdminGames() {
     setFormErrors({});
     setSubmitting(true);
 
-    // Normaliza: los campos opcionales vacíos viajan como null.
     const payload = {
       title: form.title.trim(),
       genre: form.genre.trim() || null,
@@ -140,116 +137,101 @@ export default function AdminGames() {
   };
 
   return (
-    <section style={styles.page}>
-      <h1 style={styles.heading}>Administración de juegos</h1>
+    <section className="admin-page">
+      <div className="page-header">
+        <h1 className="page-title">Administración de juegos</h1>
+      </div>
 
-      {/* Formulario controlado de creación / edición */}
-      <form onSubmit={handleSubmit} noValidate style={styles.form}>
-        <h2 style={styles.formTitle}>{editingId === null ? 'Nuevo juego' : 'Editar juego'}</h2>
+      <form onSubmit={handleSubmit} noValidate className="form">
+        <h2 className="form-title">
+          {editingId === null ? 'Nuevo juego' : 'Editar juego'}
+        </h2>
 
-        <div style={styles.field}>
-          <label htmlFor="title" style={styles.label}>
-            Título *
-          </label>
+        <div className="form-field">
+          <label htmlFor="title" className="form-label">Título *</label>
           <input
             id="title"
             name="title"
             value={form.title}
             onChange={handleChange}
-            style={{ ...styles.input, ...(formErrors.title ? styles.inputError : {}) }}
+            className={formErrors.title ? 'input--error' : undefined}
           />
-          {formErrors.title && <span style={styles.errorMsg}>{formErrors.title}</span>}
+          {formErrors.title && <span className="form-error-msg">{formErrors.title}</span>}
         </div>
 
-        <div style={styles.row}>
-          <div style={styles.field}>
-            <label htmlFor="genre" style={styles.label}>
-              Género
-            </label>
-            <input id="genre" name="genre" value={form.genre} onChange={handleChange} style={styles.input} />
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="genre" className="form-label">Género</label>
+            <input id="genre" name="genre" value={form.genre} onChange={handleChange} />
           </div>
-          <div style={styles.field}>
-            <label htmlFor="platform" style={styles.label}>
-              Plataforma
-            </label>
-            <input
-              id="platform"
-              name="platform"
-              value={form.platform}
-              onChange={handleChange}
-              style={styles.input}
-            />
+          <div className="form-field">
+            <label htmlFor="platform" className="form-label">Plataforma</label>
+            <input id="platform" name="platform" value={form.platform} onChange={handleChange} />
           </div>
         </div>
 
-        <div style={styles.field}>
-          <label htmlFor="image_url" style={styles.label}>
-            URL de imagen
-          </label>
+        <div className="form-field">
+          <label htmlFor="image_url" className="form-label">URL de imagen</label>
           <input
             id="image_url"
             name="image_url"
             value={form.image_url}
             onChange={handleChange}
-            style={{ ...styles.input, ...(formErrors.image_url ? styles.inputError : {}) }}
+            className={formErrors.image_url ? 'input--error' : undefined}
             placeholder="https://…"
           />
-          {formErrors.image_url && <span style={styles.errorMsg}>{formErrors.image_url}</span>}
+          {formErrors.image_url && <span className="form-error-msg">{formErrors.image_url}</span>}
         </div>
 
-        <div style={styles.field}>
-          <label htmlFor="description" style={styles.label}>
-            Descripción
-          </label>
+        <div className="form-field">
+          <label htmlFor="description" className="form-label">Descripción</label>
           <textarea
             id="description"
             name="description"
             value={form.description}
             onChange={handleChange}
             rows={3}
-            style={{ ...styles.input, resize: 'vertical' }}
           />
         </div>
 
-        <div style={styles.actions}>
-          <button type="submit" disabled={submitting} style={styles.primaryBtn}>
+        <div className="form-actions">
+          <button type="submit" disabled={submitting} className="btn btn-primary">
             {submitting ? 'Guardando…' : editingId === null ? 'Crear juego' : 'Guardar cambios'}
           </button>
           {editingId !== null && (
-            <button type="button" onClick={resetForm} style={styles.secondaryBtn}>
+            <button type="button" onClick={resetForm} className="btn btn-secondary">
               Cancelar
             </button>
           )}
         </div>
       </form>
 
-      {/* Tabla de juegos */}
-      {loading && <p style={styles.info}>Cargando juegos…</p>}
-      {error && !loading && <p style={styles.error}>{error}</p>}
+      {loading && <p className="state-info">Cargando juegos…</p>}
+      {error && !loading && <p className="state-error">{error}</p>}
 
       {!loading && !error && (
-        <div style={styles.tableWrap}>
-          <table style={styles.table}>
+        <div className="data-table-wrap">
+          <table className="data-table">
             <thead>
               <tr>
-                <th style={styles.th}>Título</th>
-                <th style={styles.th}>Género</th>
-                <th style={styles.th}>Plataforma</th>
-                <th style={styles.th}>Acciones</th>
+                <th>Título</th>
+                <th>Género</th>
+                <th>Plataforma</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {games && games.length > 0 ? (
                 games.map((game) => (
                   <tr key={game.id}>
-                    <td style={styles.td}>{game.title}</td>
-                    <td style={styles.td}>{game.genre || '—'}</td>
-                    <td style={styles.td}>{game.platform || '—'}</td>
-                    <td style={styles.td}>
-                      <button onClick={() => startEdit(game)} style={styles.editBtn}>
+                    <td>{game.title}</td>
+                    <td>{game.genre || '—'}</td>
+                    <td>{game.platform || '—'}</td>
+                    <td>
+                      <button onClick={() => startEdit(game)} className="btn btn-edit btn-sm">
                         Editar
-                      </button>
-                      <button onClick={() => setToDelete(game)} style={styles.deleteBtn}>
+                      </button>{' '}
+                      <button onClick={() => setToDelete(game)} className="btn btn-danger btn-sm">
                         Eliminar
                       </button>
                     </td>
@@ -257,7 +239,7 @@ export default function AdminGames() {
                 ))
               ) : (
                 <tr>
-                  <td style={styles.td} colSpan={4}>
+                  <td colSpan={4} className="data-table__empty">
                     No hay juegos registrados.
                   </td>
                 </tr>
@@ -267,17 +249,16 @@ export default function AdminGames() {
         </div>
       )}
 
-      {/* Modal de confirmación de borrado (React Portal) */}
       <Modal isOpen={toDelete !== null} onClose={() => setToDelete(null)} title="Confirmar eliminación">
-        <p style={styles.modalText}>
+        <p className="modal-text">
           ¿Seguro que quieres eliminar <strong>{toDelete?.title}</strong>? Esta acción no se puede
           deshacer.
         </p>
-        <div style={styles.modalActions}>
-          <button onClick={() => setToDelete(null)} style={styles.secondaryBtn} disabled={deleting}>
+        <div className="modal-actions">
+          <button onClick={() => setToDelete(null)} className="btn btn-secondary" disabled={deleting}>
             Cancelar
           </button>
-          <button onClick={confirmDelete} style={styles.deleteBtn} disabled={deleting}>
+          <button onClick={confirmDelete} className="btn btn-danger" disabled={deleting}>
             {deleting ? 'Eliminando…' : 'Eliminar'}
           </button>
         </div>
@@ -285,151 +266,3 @@ export default function AdminGames() {
     </section>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '1.5rem',
-  },
-  heading: {
-    margin: '0 0 1.5rem',
-    fontSize: '1.6rem',
-    fontWeight: 700,
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-    padding: '1.5rem',
-    border: '1px solid #e2e8f0',
-    borderRadius: '8px',
-    backgroundColor: '#fff',
-    marginBottom: '2rem',
-  },
-  formTitle: {
-    margin: 0,
-    fontSize: '1.15rem',
-    fontWeight: 600,
-  },
-  row: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '1rem',
-  },
-  field: {
-    flex: '1 1 200px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
-  },
-  label: {
-    fontSize: '0.85rem',
-    fontWeight: 500,
-    color: '#374151',
-  },
-  input: {
-    padding: '0.5rem 0.75rem',
-    border: '1px solid #d1d5db',
-    borderRadius: '4px',
-    fontSize: '0.95rem',
-    outline: 'none',
-    fontFamily: 'inherit',
-  },
-  inputError: {
-    borderColor: '#e53e3e',
-  },
-  errorMsg: {
-    fontSize: '0.8rem',
-    color: '#e53e3e',
-  },
-  actions: {
-    display: 'flex',
-    gap: '0.75rem',
-  },
-  primaryBtn: {
-    padding: '0.6rem 1.25rem',
-    backgroundColor: '#3b82f6',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '0.95rem',
-    fontWeight: 500,
-    cursor: 'pointer',
-  },
-  secondaryBtn: {
-    padding: '0.6rem 1.25rem',
-    backgroundColor: '#fff',
-    color: '#374151',
-    border: '1px solid #d1d5db',
-    borderRadius: '4px',
-    fontSize: '0.95rem',
-    cursor: 'pointer',
-  },
-  tableWrap: {
-    overflowX: 'auto',
-    border: '1px solid #e2e8f0',
-    borderRadius: '8px',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    backgroundColor: '#fff',
-  },
-  th: {
-    textAlign: 'left',
-    padding: '0.75rem 1rem',
-    fontSize: '0.8rem',
-    textTransform: 'uppercase',
-    letterSpacing: '0.03em',
-    color: '#6b7280',
-    borderBottom: '1px solid #e2e8f0',
-    backgroundColor: '#f9fafb',
-  },
-  td: {
-    padding: '0.75rem 1rem',
-    fontSize: '0.9rem',
-    borderBottom: '1px solid #f1f5f9',
-    color: '#374151',
-  },
-  editBtn: {
-    marginRight: '0.5rem',
-    padding: '0.35rem 0.75rem',
-    backgroundColor: '#fff',
-    color: '#2563eb',
-    border: '1px solid #bfdbfe',
-    borderRadius: '4px',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-  },
-  deleteBtn: {
-    padding: '0.35rem 0.75rem',
-    backgroundColor: '#fef2f2',
-    color: '#dc2626',
-    border: '1px solid #fecaca',
-    borderRadius: '4px',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-  },
-  info: {
-    color: '#6b7280',
-  },
-  error: {
-    padding: '0.75rem 1rem',
-    borderRadius: '6px',
-    backgroundColor: '#fff5f5',
-    border: '1px solid #fed7d7',
-    color: '#c53030',
-  },
-  modalText: {
-    margin: '0 0 1.25rem',
-    fontSize: '0.95rem',
-    color: '#374151',
-    lineHeight: 1.5,
-  },
-  modalActions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '0.75rem',
-  },
-};

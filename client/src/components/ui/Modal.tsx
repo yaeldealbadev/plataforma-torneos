@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { ReactNode } from 'react';
-import type React from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -32,44 +31,18 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   if (!modalRoot) return null;
 
   return createPortal(
-    <div style={styles.overlay} onClick={onClose} role="presentation">
+    <div className="modal-overlay" onClick={onClose} role="presentation">
       <div
-        style={styles.content}
+        className="modal-content"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        {title && <h3 style={styles.title}>{title}</h3>}
+        {title && <h3 className="modal-title">{title}</h3>}
         {children}
       </div>
     </div>,
     modalRoot
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1100,
-    padding: '1rem',
-  },
-  content: {
-    width: '100%',
-    maxWidth: '440px',
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    padding: '1.5rem',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-  },
-  title: {
-    margin: '0 0 0.75rem',
-    fontSize: '1.2rem',
-    fontWeight: 600,
-  },
-};

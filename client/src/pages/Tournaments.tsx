@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
-import Card from '../components/ui/Card';
 import type { TournamentStatus, TournamentWithStats } from '../types';
 
 const STATUS_LABELS: Record<TournamentStatus, string> = {
@@ -10,38 +9,30 @@ const STATUS_LABELS: Record<TournamentStatus, string> = {
   finished: 'Finalizado',
 };
 
-// DISEÑO: el filtrado ocurre al hacer submit, no en vivo.
-// Esto deja explícito que el valor del input se lee del ref en el momento del
-// submit (formulario no controlado), sin estado sincronizado en cada tecla.
+const STATUS_BADGE: Record<TournamentStatus, string> = {
+  open: 'badge-open',
+  in_progress: 'badge-progress',
+  finished: 'badge-finished',
+};
+
+// DISEÑO: filtrado al SUBMIT — el valor se lee del ref en el momento del submit,
+// no de un state sincronizado en cada tecla (formulario no controlado).
 export default function Tournaments() {
   const { data: tournaments, loading, error } = useFetch<TournamentWithStats[]>('/tournaments');
 
-  // Formulario no controlado: el input NO tiene value/onChange ligado a estado.
-  // Su valor se lee con inputRef.current.value únicamente al hacer submit.
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // searchTerm es el término YA confirmado (al submit). El input en sí es no controlado.
   const [searchTerm, setSearchTerm] = useState('');
   const [validationMsg, setValidationMsg] = useState('');
 
-  // Todos los hooks están declarados — ahora sí los early returns.
-  if (loading) return <p>Cargando torneos...</p>;
-  if (error) return <p>Error: {error}</p>;
-  if (!tournaments || tournaments.length === 0) return <p>No hay torneos disponibles.</p>;
+  if (loading) return <p className="state-info">Cargando torneos...</p>;
+  if (error) return <p className="state-error" style={{ margin: '2rem auto', maxWidth: '600px' }}>{error}</p>;
+  if (!tournaments || tournaments.length === 0) return <p className="state-info">No hay torneos disponibles.</p>;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const term = inputRef.current?.value.trim() ?? '';
-
-    if (term.length === 0) {
-      setValidationMsg('');
-      setSearchTerm('');
-      return;
-    }
-    if (term.length < 2) {
-      setValidationMsg('Escribe al menos 2 caracteres para buscar.');
-      return;
-    }
+    if (term.length === 0) { setSearchTerm(''); setValidationMsg(''); return; }
+    if (term.length < 2) { setValidationMsg('Escribe al menos 2 caracteres para buscar.'); return; }
     setValidationMsg('');
     setSearchTerm(term);
   };
@@ -52,7 +43,6 @@ export default function Tournaments() {
     setValidationMsg('');
   };
 
-  // Filtrado en cliente sobre la lista original (sin mutar data).
   const lower = searchTerm.toLowerCase();
   const visible = searchTerm
     ? tournaments.filter(
@@ -63,8 +53,10 @@ export default function Tournaments() {
     : tournaments;
 
   return (
-    <section className="tournaments">
-      <h1>Torneos</h1>
+    <section className="page-container">
+      <div className="page-header">
+        <h1 className="page-title">Torneos</h1>
+      </div>
 
       <form onSubmit={handleSubmit} className="search-form">
         <input
@@ -72,25 +64,47 @@ export default function Tournaments() {
           type="text"
           placeholder="Buscar torneo por nombre o juego..."
         />
-        <button type="submit">Buscar</button>
-        <button type="button" onClick={handleClear}>Limpiar</button>
+        <button type="submit" className="btn btn-primary btn-sm">Buscar</button>
+        <button type="button" onClick={handleClear} className="btn btn-ghost btn-sm">Limpiar</button>
       </form>
       {validationMsg && <p className="validation-msg">{validationMsg}</p>}
 
       {visible.length === 0 ? (
-        <p>No se encontraron torneos para &quot;{searchTerm}&quot;.</p>
+        <p className="state-info">No se encontraron torneos para &quot;{searchTerm}&quot;.</p>
       ) : (
-        visible.map((t) => (
-          <Link key={t.id} to={`/tournaments/${t.id}`} className="card-link">
-            <Card>
-              <h2>{t.name}</h2>
-              <p>{t.game_title}</p>
-              <p>Estado: {STATUS_LABELS[t.status]}</p>
-              <p>Inicio: {new Date(t.start_date).toLocaleDateString('es-MX')}</p>
-              <p>{t.inscritos} / {t.max_participants} inscritos</p>
-            </Card>
-          </Link>
-        ))
+        <div className="card-grid">
+          {visible.map((t) => (
+            <Link key={t.id} to={`/tournaments/${t.id}`} className="tournament-card__link">
+              <article className="tournament-card">
+                <div className="tournament-card__header">
+                  <h2 className="tournament-card__title">{t.name}</h2>
+                  <span className={`badge ${STATUS_BADGE[t.status]}`}>
+                    {STATUS_LABELS[t.status]}
+                  </span>
+                </div>
+
+                <p className="tournament-card__game">{t.game_title}</p>
+
+                <div className="tournament-card__meta">
+                  <div className="tournament-card__meta-item">
+                    <span className="tournament-card__meta-label">Inicio:</span>
+                    <span>{new Date(t.start_date).toLocaleDateString('es-MX')}</span>
+                  </div>
+                  <div className="tournament-card__meta-item">
+                    <span className="tournament-card__meta-label">Jugadores:</span>
+                    <span>{t.inscritos} / {t.max_participants}</span>
+                  </div>
+                  {t.prize && (
+                    <div className="tournament-card__meta-item">
+                      <span className="tournament-card__meta-label">Premio:</span>
+                      <span>{t.prize}</span>
+                    </div>
+                  )}
+                </div>
+              </article>
+            </Link>
+          ))}
+        </div>
       )}
     </section>
   );
