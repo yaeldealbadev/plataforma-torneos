@@ -16,6 +16,7 @@ export interface Game {
   platform?: string;
   description?: string;
   image_url?: string;
+  created_at?: string;
 }
 
 export type TournamentStatus = 'open' | 'in_progress' | 'finished';
